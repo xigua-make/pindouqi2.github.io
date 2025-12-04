@@ -1290,20 +1290,6 @@
             color: var(--text-primary);
         }
 
-        /* --- 兼容性提示样式 --- */
-        .compatibility-warning {
-            background: #fff3cd;
-            border: 1px solid #ffeaa7;
-            border-radius: 10px;
-            padding: 15px;
-            margin: 10px 0;
-            color: #856404;
-        }
-
-        .compatibility-warning strong {
-            color: #d63031;
-        }
-
         /* --- 响应式设计 --- */
         @media (max-width: 768px) {
             .home-header h1 {
@@ -1622,19 +1608,10 @@
             <!-- Download Section -->
             <section class="section">
                 <h2 class="section-title">💾 下载导出</h2>
-                <div class="compatibility-warning" id="compatibility-warning" style="display: none;">
-                    <strong>⚠️ 兼容性提示</strong><br>
-                    检测到您的设备可能存在兼容性问题，建议：<br>
-                    1. 优先使用"在新窗口查看"功能<br>
-                    2. 如果下载失败，请截图保存<br>
-                    3. 建议使用Safari、Chrome等主流浏览器
-                </div>
                 <div class="download-buttons">
                     <button class="btn btn-primary" id="download-btn">💾 下载高清图纸</button>
                     <button class="btn btn-secondary" id="download-stats-btn">📊 下载统计图</button>
                     <button class="btn btn-secondary" id="toggle-list-btn">📦 查看材料清单</button>
-                    <button class="btn btn-secondary" id="view-in-new-window-btn">🖼️ 在新窗口查看</button>
-                    <button class="btn btn-secondary" id="screenshot-guide-btn">📷 截图保存提示</button>
                 </div>
                 
                 <div class="status-display">
@@ -3472,7 +3449,7 @@ const detectDeviceCompatibility = () => {
     };
 };
 
-// --- 完全重写的下载函数 - 解决所有兼容性问题 ---
+// --- 修复后的下载函数 - 解决图纸显示不全问题 ---
 const downloadPattern = (isEditMode = false) => {
     if (!state.colorData || state.colorData.length === 0) {
         alert('请先生成图纸');
@@ -3481,25 +3458,13 @@ const downloadPattern = (isEditMode = false) => {
     
     console.log('=== 开始生成高质量图纸 ===');
     
-    // 检测设备兼容性
-    const deviceInfo = detectDeviceCompatibility();
-    console.log('设备信息:', deviceInfo);
-    
-    // 显示兼容性警告
-    const warningDiv = document.getElementById('compatibility-warning');
-    if (deviceInfo.isLowEnd || deviceInfo.needsCompatibilityMode) {
-        warningDiv.style.display = 'block';
-    } else {
-        warningDiv.style.display = 'none';
-    }
-    
     try {
         // 创建高质量画布
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
         
-        // 根据设备能力调整参数
-        const hdCellSize = deviceInfo.isLowEnd ? 20 : 30; // 低端设备使用更小的单元格
+        // 使用固定的单元格大小，确保图纸完整显示
+        const hdCellSize = 30;
         const coordSize = state.showCoords ? 60 : 20;
         const padding = state.showCoords ? 80 : 40;
         
@@ -3531,21 +3496,27 @@ const downloadPattern = (isEditMode = false) => {
             return;
         }
         
-        // 限制最大尺寸，避免内存问题
-        const actualWidth = Math.min(maxX - minX + 1, deviceInfo.isLowEnd ? 40 : 60);
-        const actualHeight = Math.min(maxY - minY + 1, deviceInfo.isLowEnd ? 40 : 60);
+        // 确保使用完整的实际尺寸，不限制最大尺寸
+        const actualWidth = maxX - minX + 1;
+        const actualHeight = maxY - minY + 1;
         
         // 计算材料表所需空间
         const sorted = Object.entries(state.colorCounts).sort((a,b)=>b[1]-a[1]);
-        const itemsPerRow = Math.floor(1080 / 150); // 适配手机屏幕宽度
+        const itemsPerRow = 6; // 固定每行6个项目
         const rowsNeeded = Math.ceil(sorted.length / itemsPerRow);
-        const listHeight = rowsNeeded * 110 + 100; // 每行高度110px，加上标题间距
+        const itemHeight = 100; // 每个项目高度
+        const listHeight = rowsNeeded * itemHeight + 150; // 每行高度100px，加上标题和间距
         
-        // 重新计算画布高度 - 确保包含完整材料表
-        canvas.width = Math.max(1080, actualWidth * hdCellSize + padding); // 最小宽度1080px适配手机
-        canvas.height = actualHeight * hdCellSize + padding + listHeight + 200; // 增加额外空间确保材料表完整显示
+        // 重新计算画布尺寸 - 确保包含完整材料表
+        const patternHeight = actualHeight * hdCellSize + padding;
+        const totalHeight = patternHeight + listHeight + 100; // 额外空间确保完整显示
         
-        console.log(`画布尺寸: ${canvas.width} x ${canvas.height}`);
+        // 设置画布尺寸 - 使用合适的尺寸
+        canvas.width = Math.max(1200, actualWidth * hdCellSize + padding); // 最小宽度1200px
+        canvas.height = totalHeight;
+        
+        console.log(`修复后画布尺寸: ${canvas.width} x ${canvas.height}`);
+        console.log(`图案区域: ${actualWidth} x ${actualHeight}, 材料表高度: ${listHeight}`);
         
         // 设置背景
         ctx.imageSmoothingEnabled = false;
@@ -3554,21 +3525,21 @@ const downloadPattern = (isEditMode = false) => {
         
         // 绘制坐标标签
         if (state.showCoords) {
-            ctx.font = 'bold 32px Arial'; 
+            ctx.font = 'bold 24px Arial'; 
             ctx.textAlign = 'center'; 
             ctx.textBaseline = 'middle';
             ctx.fillStyle = '#333333';
             
-            for(let x = minX; x <= maxX && x < minX + actualWidth; x++) {
+            for(let x = minX; x <= maxX; x++) {
                 const label = (x + 1).toString();
                 const xPos = (x - minX) * hdCellSize + hdCellSize/2 + padding/2;
-                ctx.fillText(label, xPos, padding/2 - 40);
+                ctx.fillText(label, xPos, padding/2 - 30);
             }
             
-            for(let y = minY; y <= maxY && y < minY + actualHeight; y++) {
+            for(let y = minY; y <= maxY; y++) {
                 const label = (y + 1).toString();
                 const yPos = (y - minY) * hdCellSize + hdCellSize/2 + padding/2;
-                ctx.fillText(label, padding/2 - 40, yPos);
+                ctx.fillText(label, padding/2 - 30, yPos);
             }
         }
 
@@ -3576,8 +3547,8 @@ const downloadPattern = (isEditMode = false) => {
         const offsetX = state.showCoords ? padding/2 : 40;
         const offsetY = state.showCoords ? padding/2 : 40;
         
-        for(let y = minY; y <= maxY && y < minY + actualHeight; y++) {
-            for(let x = minX; x <= maxX && x < minX + actualWidth; x++) {
+        for(let y = minY; y <= maxY; y++) {
+            for(let x = minX; x <= maxX; x++) {
                 const key = state.colorData[y][x];
                 if (!key) continue;
                 
@@ -3628,7 +3599,7 @@ const downloadPattern = (isEditMode = false) => {
                     const brightness = (rgb.r * 299 + rgb.g * 587 + rgb.b * 114) / 1000;
                     ctx.fillStyle = brightness > 140 ? '#000000' : '#ffffff';
                     
-                    const fontSize = Math.min(hdCellSize * 0.4, 18);
+                    const fontSize = Math.min(hdCellSize * 0.35, 16);
                     ctx.font = `bold ${fontSize}px Arial`;
                     ctx.textAlign = 'center'; 
                     ctx.textBaseline = 'middle';
@@ -3640,53 +3611,57 @@ const downloadPattern = (isEditMode = false) => {
         }
         
         // 绘制材料清单 - 修复布局问题
-        const listY = actualHeight * hdCellSize + offsetY + 50;
-        ctx.font = 'bold 24px Arial';
+        const listY = patternHeight + 50;
+        ctx.font = 'bold 20px Arial';
         ctx.fillStyle = '#333333';
         ctx.textAlign = 'left';
         ctx.fillText('📦 材料清单:', 50, listY);
         
-        // 重新计算材料表布局 - 确保在手机上完整显示
-        const itemWidth = 140;
-        const itemHeight = 90;
+        // 重新计算材料表布局 - 确保完整显示
+        const itemWidth = 180;
         const itemsPerRowFixed = Math.floor((canvas.width - 100) / (itemWidth + 20));
+        
+        console.log(`材料表布局: 每行${itemsPerRowFixed}个项目，共${sorted.length}个颜色`);
         
         sorted.forEach(([key, count], index) => {
             const col = index % itemsPerRowFixed;
             const row = Math.floor(index / itemsPerRowFixed);
             const itemX = 50 + col * (itemWidth + 20);
-            const itemY = listY + 50 + row * (itemHeight + 20);
+            const itemY = listY + 50 + row * itemHeight;
             
             // 确保不会超出画布底部
             if (itemY + itemHeight > canvas.height - 50) {
-                console.warn(`材料表项目 ${key} 超出画布边界`);
-                return;
+                console.warn(`材料表项目 ${key} 可能超出画布边界，当前Y: ${itemY}, 画布高度: ${canvas.height}`);
+                // 动态调整画布高度
+                canvas.height = itemY + itemHeight + 100;
             }
             
+            // 绘制颜色块
             ctx.fillStyle = MARD_COLORS_FULL[key];
-            ctx.fillRect(itemX, itemY, 45, 45);
+            ctx.fillRect(itemX, itemY, 50, 50);
             ctx.strokeStyle = '#333333';
             ctx.lineWidth = 2;
-            ctx.strokeRect(itemX, itemY, 45, 45);
+            ctx.strokeRect(itemX, itemY, 50, 50);
             
+            // 绘制文字信息
             ctx.fillStyle = '#333333';
-            ctx.font = 'bold 18px Arial';
-            ctx.textAlign = 'left';
-            ctx.fillText(key, itemX + 55, itemY + 20);
             ctx.font = 'bold 16px Arial';
-            ctx.fillText(`×${count}`, itemX + 55, itemY + 45);
+            ctx.textAlign = 'left';
+            ctx.fillText(key, itemX + 60, itemY + 20);
+            ctx.font = 'bold 14px Arial';
+            ctx.fillText(`×${count}`, itemX + 60, itemY + 45);
         });
         
         // 绘制版权信息
-        ctx.font = '14px Arial';
+        ctx.font = '12px Arial';
         ctx.fillStyle = '#666666';
         ctx.textAlign = 'center';
-        ctx.fillText('拼豆图纸生成器-西瓜哥制作', canvas.width/2, canvas.height - 60);
-        ctx.fillText('版权已登记，仅授权于淘宝店铺：大师精品资料', canvas.width/2, canvas.height - 35);
+        ctx.fillText('拼豆图纸生成器-西瓜哥制作', canvas.width/2, canvas.height - 40);
+        ctx.fillText('版权已登记，仅授权于淘宝店铺：大师精品资料', canvas.width/2, canvas.height - 20);
         
-        console.log('图纸绘制完成，开始下载处理...');
+        console.log('图纸绘制完成，最终画布尺寸:', canvas.width, 'x', canvas.height);
         
-        // 多重下载策略 - 确保兼容性
+        // 下载处理 - 使用修复后的多重下载策略
         const tryDownload = async () => {
             console.log('尝试下载策略...');
             
@@ -3741,9 +3716,7 @@ const downloadPattern = (isEditMode = false) => {
                 console.warn('JPEG方法失败:', error);
             }
             
-            // 策略4: 在新窗口显示（最终备用方案）
-            console.log('使用新窗口显示方案...');
-            showInNewWindow(canvas);
+            alert('所有下载方法都失败了，请尝试截图保存');
         };
         
         // Blob下载处理
@@ -3764,7 +3737,7 @@ const downloadPattern = (isEditMode = false) => {
                 };
                 reader.onerror = function() {
                     console.error('FileReader读取失败');
-                    showInNewWindow(canvas);
+                    alert('下载失败，请尝试截图保存');
                 };
                 reader.readAsDataURL(blob);
             } else {
@@ -3798,7 +3771,7 @@ const downloadPattern = (isEditMode = false) => {
                     console.log('桌面端下载完成');
                 } catch (error) {
                     console.error('桌面端下载失败:', error);
-                    showInNewWindow(canvas);
+                    alert('下载失败，请尝试截图保存');
                 }
             }
         };
@@ -3840,88 +3813,7 @@ const downloadPattern = (isEditMode = false) => {
                 console.log('DataURL下载完成');
             } catch (error) {
                 console.error('DataURL下载失败:', error);
-                showInNewWindow(canvas);
-            }
-        };
-        
-        // 新窗口显示
-        const showInNewWindow = (canvas) => {
-            console.log('在新窗口显示图纸');
-            
-            try {
-                const dataURL = canvas.toDataURL('image/png', 0.8);
-                const newWindow = window.open('', '_blank');
-                
-                if (newWindow) {
-                    newWindow.document.write(`
-                        <!DOCTYPE html>
-                        <html>
-                        <head>
-                            <title>拼豆图纸 - ${new Date().toLocaleString()}</title>
-                            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                            <style>
-                                body { 
-                                    margin: 0; 
-                                    padding: 20px; 
-                                    text-align: center; 
-                                    font-family: Arial, sans-serif;
-                                    background-color: #f5f5f5;
-                                }
-                                .header {
-                                    background: linear-gradient(135deg, #FF69B4, #FFB6C1);
-                                    color: white;
-                                    padding: 20px;
-                                    border-radius: 10px;
-                                    margin-bottom: 20px;
-                                }
-                                img { 
-                                    max-width: 100%; 
-                                    height: auto; 
-                                    border: 2px solid #ddd;
-                                    border-radius: 5px;
-                                    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-                                }
-                                .instructions { 
-                                    margin: 20px 0; 
-                                    color: #666;
-                                    background: white;
-                                    padding: 15px;
-                                    border-radius: 5px;
-                                }
-                                .footer {
-                                    margin-top: 20px;
-                                    font-size: 12px;
-                                    color: #999;
-                                }
-                            </style>
-                        </head>
-                        <body>
-                            <div class="header">
-                                <h2>🌸 拼豆图纸生成成功！</h2>
-                                <p>生成时间: ${new Date().toLocaleString()}</p>
-                            </div>
-                            <div class="instructions">
-                                <h3>保存说明:</h3>
-                                <p><strong>手机用户:</strong> 长按下方图片选择"保存图片"</p>
-                                <p><strong>电脑用户:</strong> 右键图片选择"图片另存为"</p>
-                                <p><strong>如果无法保存:</strong> 请截图保存当前页面</p>
-                            </div>
-                            <img src="${dataURL}" alt="拼豆图纸" />
-                            <div class="footer">
-                                <p>拼豆图纸生成器-西瓜哥制作</p>
-                                <p>版权已登记，仅授权于淘宝店铺：大师精品资料</p>
-                            </div>
-                        </body>
-                        </html>
-                    `);
-                    console.log('新窗口显示成功');
-                } else {
-                    console.error('无法打开新窗口，可能是浏览器阻止了弹窗');
-                    alert('无法打开新窗口，请检查浏览器弹窗设置，或尝试截图保存');
-                }
-            } catch (error) {
-                console.error('新窗口显示失败:', error);
-                alert('显示失败，请尝试截图保存');
+                alert('下载失败，请尝试截图保存');
             }
         };
         
@@ -4076,64 +3968,6 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('edit-mode-screen').style.display = 'none';
             document.getElementById('app-screen').style.display = 'block';
             document.getElementById('home-screen').style.display = 'none';
-        });
-    }
-    
-    // 新增：在新窗口查看按钮
-    const viewInNewWindowBtn = document.getElementById('view-in-new-window-btn');
-    if (viewInNewWindowBtn) {
-        viewInNewWindowBtn.addEventListener('click', () => {
-            if (!state.colorData || state.colorData.length === 0) {
-                alert('请先生成图纸');
-                return;
-            }
-            
-            // 复制downloadPattern中的showInNewWindow逻辑
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            // ... 复制绘制逻辑 ...
-            
-            try {
-                const dataURL = canvas.toDataURL('image/png', 0.8);
-                const newWindow = window.open('', '_blank');
-                
-                if (newWindow) {
-                    newWindow.document.write(`
-                        <!DOCTYPE html>
-                        <html>
-                        <head>
-                            <title>拼豆图纸预览</title>
-                            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                            <style>
-                                body { margin: 0; padding: 20px; text-align: center; font-family: Arial, sans-serif; }
-                                img { max-width: 100%; height: auto; border: 1px solid #ccc; }
-                                .instructions { margin: 20px 0; color: #666; }
-                            </style>
-                        </head>
-                        <body>
-                            <div class="instructions">
-                                <h3>拼豆图纸预览</h3>
-                                <p>请长按图片保存到相册</p>
-                            </div>
-                            <img src="${dataURL}" alt="拼豆图纸" />
-                        </body>
-                        </html>
-                    `);
-                } else {
-                    alert('无法打开新窗口，请检查浏览器弹窗设置');
-                }
-            } catch (error) {
-                console.error('新窗口显示失败:', error);
-                alert('显示失败，请尝试截图保存');
-            }
-        });
-    }
-    
-    // 新增：截图保存提示按钮
-    const screenshotGuideBtn = document.getElementById('screenshot-guide-btn');
-    if (screenshotGuideBtn) {
-        screenshotGuideBtn.addEventListener('click', () => {
-            alert('截图保存指南：\n\n1. Android手机：同时按 电源键 + 音量下键\n2. iPhone：同时按 电源键 + 音量上键\n3. 截图后到相册中查找保存\n\n如果截图不完整，请先缩放图纸到合适大小');
         });
     }
     
