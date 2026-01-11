@@ -158,18 +158,18 @@
         h1 {
             color: var(--primary-red);
             font-size: 2rem;
-            text-align: center;
+            text-align: center; /* 标题本来就是居中的 */
             margin-bottom: 30px;
             font-weight: 800;
             letter-spacing: 1px;
         }
 
-        /* 正文文本样式 */
+        /* 正文文本样式 - 修改处 */
         .text-content {
             font-size: 1.1rem;
             line-height: 1.8;
             color: #444;
-            text-align: justify; /* 电脑端也推荐两端对齐，更整洁 */
+            text-align: center; /* 【修改】这里改为了 center */
         }
 
         /* 强调文字 */
@@ -218,7 +218,7 @@
 
             .text-content {
                 font-size: 1rem; /* 正文字号缩小 */
-                text-align: justify; /* 手机端强制两端对齐，体验更好 */
+                text-align: center; /* 【修改】手机端也改为 center */
             }
         }
 
@@ -229,6 +229,7 @@
             }
             .text-content {
                 font-size: 0.95rem;
+                text-align: center; /* 保持一致 */
             }
             .lantern-wrapper {
                 transform: scale(0.5); /* 进一步缩小灯笼 */
@@ -279,10 +280,16 @@
                 非常抱歉 因有些用户反馈网址进入太慢/进入不了和一些其它原因，<span class="highlight">现进行停运</span>，不在进行运营。
             </p>
             <p>
-                我们已经换到新网站进行运营，彻底解决了大家进入网站慢或者进不去的情况和一些其它优化。新站会让大家使用起来更加的流畅
+                <span class="highlight">我们已经换到新网站进行运营</span>，彻底解决了大家进入网站慢或者进不去的情况和一些其它优化。新站会让大家使用起来更加的流畅
             </p>
             <p>
                 请大家购买过产品的，回到教程页面，领取新网站地址，使用当时给您发放的激活码进行激活即可使用。
+            </p>
+            <p>
+                 感谢大家一直以来对我们的支持和信任 我们也将收集大家的反馈和建议 不断的进行维护和更新 争取让大家用到最好用的拼豆生成器
+             </p>
+            <p>
+                <span class="highlight">最后 祝大家 新年快乐 马年鸿福 策马奔腾 财源滚滚来</span>
             </p>
         </article>
     </main>
